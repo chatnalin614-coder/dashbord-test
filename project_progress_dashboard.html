@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard ความคืบหน้าการดำเนินงานโครงการ</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+:root{--green:#125b3a;--green2:#21865a;--bg:#f4f7f6;--card:#fff;--text:#1f2937;--muted:#64748b;--orange:#f59e0b;--red:#dc2626;--blue:#2563eb}
+*{box-sizing:border-box} body{margin:0;font-family:"Noto Sans Thai","Tahoma",Arial,sans-serif;background:var(--bg);color:var(--text)}
+.container{max-width:1450px;margin:auto;padding:28px}
+.header{background:linear-gradient(135deg,#0e5435,#21865a);color:#fff;border-radius:20px;padding:28px 32px;margin-bottom:22px;box-shadow:0 8px 24px #00000012}
+.header h1{margin:0 0 6px;font-size:30px}.header p{margin:0;opacity:.9}
+.grid{display:grid;gap:18px}.kpis{grid-template-columns:repeat(4,1fr);margin-bottom:22px}.card{background:var(--card);border-radius:16px;padding:20px;box-shadow:0 3px 14px #0000000d;border:1px solid #e5e7eb}
+.kpi .label{color:var(--muted);font-size:14px}.kpi .value{font-size:30px;font-weight:800;margin:7px 0}.kpi .note{font-size:13px;color:var(--muted)}
+.controls{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:18px}.controls label{font-weight:700}.controls select{padding:10px 14px;border-radius:10px;border:1px solid #cbd5e1;background:white;font-size:15px}
+.main{grid-template-columns:1.15fr .85fr;margin-bottom:18px}.chartbox{min-height:360px}.chartbox h2,.tablebox h2{font-size:19px;margin:0 0 15px}
+.status{font-weight:800;padding:5px 10px;border-radius:999px;font-size:12px;display:inline-block}.good{background:#dcfce7;color:#166534}.warn{background:#fef3c7;color:#92400e}.bad{background:#fee2e2;color:#991b1b}
+.progress{height:10px;background:#e5e7eb;border-radius:999px;overflow:hidden;margin:8px 0}.bar{height:100%;border-radius:999px}.g{background:var(--green2)}.o{background:var(--orange)}.r{background:var(--red)}
+table{width:100%;border-collapse:collapse;font-size:14px}th,td{padding:13px 10px;border-bottom:1px solid #e5e7eb;text-align:left}th{color:var(--muted);font-weight:700}
+.summary{grid-template-columns:repeat(3,1fr)}.summary h3{margin:0 0 8px}.summary p{margin:5px 0;color:#475569;line-height:1.55}
+.footer{margin-top:20px;color:#64748b;font-size:12px;text-align:center}
+@media(max-width:950px){.kpis,.summary{grid-template-columns:repeat(2,1fr)}.main{grid-template-columns:1fr}}
+@media(max-width:600px){.container{padding:14px}.kpis,.summary{grid-template-columns:1fr}.header h1{font-size:24px}table{font-size:12px}}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>Dashboard ความคืบหน้าการดำเนินงานโครงการ</h1>
+    <p>เปรียบเทียบแผนกับผลการดำเนินงานจริง • วิเคราะห์งบประมาณ • ความคืบหน้า • KPI</p>
+  </div>
+
+  <div class="controls">
+    <label for="project">เลือกโครงการ:</label>
+    <select id="project">
+      <option value="all">ภาพรวมทั้งหมด</option>
+      <option value="บริการประชาชน">บริการประชาชน</option>
+      <option value="บริการดิจิทัล">บริการดิจิทัล</option>
+      <option value="อบรมบุคลากร">อบรมบุคลากร</option>
+    </select>
+  </div>
+
+  <div class="grid kpis" id="kpis"></div>
+
+  <div class="grid main">
+    <div class="card chartbox">
+      <h2>แผน vs ผลจริง: ความคืบหน้าและ KPI</h2>
+      <canvas id="compareChart"></canvas>
+    </div>
+    <div class="card chartbox">
+      <h2>การใช้งบประมาณ</h2>
+      <canvas id="budgetChart"></canvas>
+    </div>
+  </div>
+
+  <div class="card tablebox">
+    <h2>รายละเอียดรายโครงการ</h2>
+    <div style="overflow:auto">
+    <table>
+      <thead><tr><th>โครงการ</th><th>งบตามแผน</th><th>ใช้จริง</th><th>ใช้ไป</th><th>ความคืบหน้า</th><th>เป้าหมาย</th><th>ส่วนต่าง</th><th>KPI</th><th>บรรลุ KPI</th><th>สถานะ</th></tr></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+    </div>
+  </div>
+
+  <div class="grid summary" style="margin-top:18px">
+    <div class="card"><h3>🟢 จุดเด่น</h3><p>บริการดิจิทัลมีความคืบหน้า 85% สูงกว่าแผน 5 จุดร้อยละ และบรรลุ KPI 115%</p></div>
+    <div class="card"><h3>🟠 ประเด็นต้องติดตาม</h3><p>บริการประชาชนต่ำกว่าแผน 8 จุดร้อยละ และ KPI บรรลุ 86% ของเป้าหมาย</p></div>
+    <div class="card"><h3>🔴 เร่งรัด</h3><p>อบรมบุคลากรต่ำกว่าแผน 17 จุดร้อยละ ขณะที่ใช้งบประมาณแล้ว 85% ควรตรวจสอบประสิทธิภาพการใช้จ่ายเทียบกับความก้าวหน้า</p></div>
+  </div>
+  <div class="footer">ข้อมูลจากแผนโครงการและผลการดำเนินงานที่ให้ไว้ • หน่วยงบประมาณ: บาท • KPI: คน</div>
+</div>
+
+<script>
+const data=[
+ {name:"บริการประชาชน",planBudget:1200000,actualBudget:780000,planProg:70,actualProg:62,target:1000,kpi:860,status:"ต่ำกว่าแผนเล็กน้อย",cls:"warn"},
+ {name:"บริการดิจิทัล",planBudget:900000,actualBudget:720000,planProg:80,actualProg:85,target:5000,kpi:5750,status:"สูงกว่าแผน",cls:"good"},
+ {name:"อบรมบุคลากร",planBudget:600000,actualBudget:510000,planProg:75,actualProg:58,target:800,kpi:640,status:"ต่ำกว่าแผนอย่างชัดเจน",cls:"bad"}
+];
+let c1,c2;
+const money=n=>n.toLocaleString("th-TH");
+const avg=a=>a.reduce((x,y)=>x+y,0)/a.length;
+function render(){
+ const v=document.getElementById("project").value;
+ const rows=v==="all"?data:data.filter(x=>x.name===v);
+ const totalPlan=rows.reduce((s,x)=>s+x.planBudget,0), totalActual=rows.reduce((s,x)=>s+x.actualBudget,0);
+ const avgPlan=avg(rows.map(x=>x.planProg)), avgActual=avg(rows.map(x=>x.actualProg));
+ const totalTarget=rows.reduce((s,x)=>s+x.target,0), totalKpi=rows.reduce((s,x)=>s+x.kpi,0);
+ document.getElementById("kpis").innerHTML=`
+  <div class="card kpi"><div class="label">งบประมาณตามแผน</div><div class="value">${money(totalPlan)} บาท</div><div class="note">งบประมาณรวมของรายการที่เลือก</div></div>
+  <div class="card kpi"><div class="label">งบประมาณที่ใช้จริง</div><div class="value">${money(totalActual)} บาท</div><div class="note">ใช้ไป ${(totalActual/totalPlan*100).toFixed(1)}% ของแผน</div></div>
+  <div class="card kpi"><div class="label">ความคืบหน้าเฉลี่ย</div><div class="value">${avgActual.toFixed(1)}%</div><div class="note">เป้าหมายเฉลี่ย ${avgPlan.toFixed(1)}% • ต่าง ${(avgActual-avgPlan).toFixed(1)} จุดร้อยละ</div></div>
+  <div class="card kpi"><div class="label">KPI</div><div class="value">${money(totalKpi)} / ${money(totalTarget)}</div><div class="note">บรรลุ ${(totalKpi/totalTarget*100).toFixed(1)}% ของเป้าหมาย</div></div>`;
+ document.getElementById("tbody").innerHTML=rows.map(x=>{
+  const bp=x.actualBudget/x.planBudget*100, kd=x.kpi/x.target*100, d=x.actualProg-x.planProg;
+  return `<tr><td><b>${x.name}</b></td><td>${money(x.planBudget)}</td><td>${money(x.actualBudget)}</td><td>${bp.toFixed(1)}%</td>
+  <td>${x.actualProg}%<div class="progress"><div class="bar ${d>=0?'g':d>=-10?'o':'r'}" style="width:${x.actualProg}%"></div></div></td>
+  <td>${x.planProg}%</td><td>${d>0?'+':''}${d} จุดร้อยละ</td><td>${money(x.kpi)} / ${money(x.target)}</td><td>${kd.toFixed(1)}%</td>
+  <td><span class="status ${x.cls}">${x.status}</span></td></tr>`;
+ }).join("");
+
+ if(c1)c1.destroy(); if(c2)c2.destroy();
+ c1=new Chart(document.getElementById("compareChart"),{type:"bar",data:{labels:rows.map(x=>x.name),datasets:[
+  {label:"ความคืบหน้าแผน (%)",data:rows.map(x=>x.planProg)},
+  {label:"ความคืบหน้าจริง (%)",data:rows.map(x=>x.actualProg)}
+ ]},options:{responsive:true,maintainAspectRatio:false,scales:{y:{beginAtZero:true,max:100,title:{display:true,text:"เปอร์เซ็นต์"}}},plugins:{legend:{position:"bottom"}}}});
+ c2=new Chart(document.getElementById("budgetChart"),{type:"bar",data:{labels:rows.map(x=>x.name),datasets:[
+  {label:"งบตามแผน",data:rows.map(x=>x.planBudget)},
+  {label:"งบใช้จริง",data:rows.map(x=>x.actualBudget)}
+ ]},options:{responsive:true,maintainAspectRatio:false,scales:{y:{beginAtZero:true,ticks:{callback:v=>new Intl.NumberFormat("th-TH",{notation:"compact"}).format(v)}}},plugins:{legend:{position:"bottom"},tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${money(c.raw)} บาท`}}}}});
+}
+document.getElementById("project").addEventListener("change",render); render();
+</script>
+</body>
+</html>
